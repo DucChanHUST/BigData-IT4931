@@ -1,14 +1,13 @@
 import axios from "axios";
-import { ethers } from "ethers";
 import { MongoService } from "./mongo.js";
+import { LastBlockQuery } from "../model/index.js";
 import { NETWORKS, TOKEN_INFO } from "../common/config.js";
-import { TokenPrice, LastBlockQuery } from "../model/index.js";
 
 export class TokenPriceService {
   constructor() {
     this.fetchPrice = this.fetchPrice.bind(this);
-    this.saveTokenPrice = this.saveTokenPrice.bind(this);
     this.getBlockTimestamp = this.getBlockTimestamp.bind(this);
+    this.fetchPriceForBlockRange = this.fetchPriceForBlockRange.bind(this);
     this.getTokenPriceAtTimeStamp = this.getTokenPriceAtTimeStamp.bind(this);
   }
 
@@ -36,10 +35,54 @@ export class TokenPriceService {
     }
   }
 
+  async fetchPriceForBlockRange(
+    token,
+    provider,
+    blockNumberFrom,
+    blockNumberTo
+  ) {
+    try {
+      console.log("from block", blockNumberFrom, "to block", blockNumberTo);
+      new Promise((resolve) => setTimeout(resolve, 15000)); // sleep
+
+      const sIn5Minutes = 5 * 60;
+      const msIn5Minutes = 5 * 60 * 1000;
+      const mongoService = new MongoService();
+
+      const timestampTo = await this.getBlockTimestamp(provider, blockNumberTo);
+      const timestampFrom = await this.getBlockTimestamp(
+        provider,
+        blockNumberFrom
+      );
+      console.log("from timestamp", timestampFrom, "to timestamp", timestampTo);
+
+      const prices = await this.getTokenPriceAtTimeStamp(
+        token.coingeckoId,
+        timestampFrom,
+        timestampTo
+      );
+
+      prices.map(async (price) => {
+        const timestamp = Math.round(price[0] / msIn5Minutes) * sIn5Minutes;
+
+        await mongoService.updateTokenPrice(
+          price[1],
+          token.chainId,
+          token.address,
+          timestamp
+        );
+      });
+    } catch (error) {
+      console.error("Error in fetchPriceForBlockRange", error);
+    }
+  }
+
   async fetchPrice() {
     try {
-      const mongoservice = new MongoService();
+      const mongoService = new MongoService();
       TOKEN_INFO.forEach(async (token) => {
+        console.log("fetch token", token.symbol);
+
         const network = NETWORKS[token.chainId];
         const provider = network.provider;
 
@@ -53,24 +96,12 @@ export class TokenPriceService {
 
         const batchSize = network.batchSize;
         if (blockGap < batchSize) {
-          const timestampTo = await this.getBlockTimestamp(
+          this.fetchPriceForBlockRange(
+            token,
             provider,
+            lastBlockQuery,
             blockNumberTo
           );
-          const timestampFrom = await this.getBlockTimestamp(
-            provider,
-            lastBlockQuery
-          );
-          const prices = await this.getTokenPriceAtTimeStamp(
-            token.coingeckoId,
-            timestampFrom,
-            timestampTo
-          );
-          if (prices.length() == 0) {
-            console.log("ko co j");
-            return;
-          }
-          await this.saveTokenPrice(prices, token.chainId, token.address);
         } else {
           const batchCount = Math.ceil(blockGap / batchSize);
           for (let i = 0; i < batchCount; i++) {
@@ -79,41 +110,16 @@ export class TokenPriceService {
               lastBlockQuery + (i + 1) * batchSize,
               blockNumberTo
             );
-
-            const timestampTo = await this.getBlockTimestamp(provider, toBlock);
-            const timestampFrom = await this.getBlockTimestamp(
-              provider,
-              fromBlock
-            );
-            const prices = await this.getTokenPriceAtTimeStamp(
-              token.coingeckoId,
-              timestampFrom,
-              timestampTo
-            );
-            if (prices.length() == 0) {
-              console.log("ko co j");
-              return;
-            }
-
-            await this.saveTokenPrice(prices, token.chainId, token.address);
+            this.fetchPriceForBlockRange(token, provider, fromBlock, toBlock);
           }
         }
-      });
 
-      mongoservice.updateLastBlockQuery(token.chainId, blockNumberTo);
+        console.log("update last block query", blockNumberTo);
+
+        mongoService.updateLastBlockQuery(token.chainId, blockNumberTo);
+      });
     } catch (error) {
       console.error("Error in fetchPrice", error);
     }
-  }
-
-  async saveTokenPrice(prices, chainId, tokenAddress) {
-    prices.map(async (item) => {
-      await TokenPrice.create({
-        value: item[1],
-        chainId: chainId,
-        tokenAddress: tokenAddress,
-        timestamp: item[0],
-      });
-    });
   }
 }

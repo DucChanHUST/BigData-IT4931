@@ -63,7 +63,7 @@ export class MongoService {
     try {
       await LastBlockQuery.findOneAndUpdate(
         { chainId: 1 },
-        { value: 21211480, chainId: 1 },
+        { value: 20000000, chainId: 1 },
         { upsert: true, new: true }
       );
 
