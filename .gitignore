@@ -17,3 +17,6 @@
 */.vs
 */.nyc_output
 */.sonar
+.venv
+
+*test.*
