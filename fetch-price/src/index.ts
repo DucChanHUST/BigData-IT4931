@@ -1,13 +1,14 @@
-import { MongoService } from "./service/mongo.js";
-import { TokenPriceService } from "./service/tokenPriceService.js";
+import { MongoService } from "./service/Mongo";
+import { TokenPriceService } from "./service/TokenPriceService";
 
 const start = async () => {
   const mongoService = new MongoService();
   const tokenPriceService = new TokenPriceService();
 
   await mongoService.connectMongo();
-  
+  await mongoService.initDb();
+
   await tokenPriceService.fetchPrice();
 };
 
-await start();
+start();
