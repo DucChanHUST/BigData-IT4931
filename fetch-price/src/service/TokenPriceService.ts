@@ -5,7 +5,8 @@ import { MongoService } from "./Mongo";
 import { LastTimeQuery } from "../model/index";
 import { COINGECKO_IDS } from "../common/Config";
 
-const batchSize = 30 * 24 * 60 * 60;
+const maxBatchSize = 30 * 24 * 60 * 60;
+const minBatchSize = 3 * 24 * 60 * 60;
 const mongoService = new MongoService();
 
 export class TokenPriceService {
@@ -91,18 +92,19 @@ export class TokenPriceService {
         let lastTimeQuery = lastTimeQueryRecord.timestamp;
         let timeGap = now - lastTimeQuery;
 
-        while (timeGap > batchSize) {
+        while (timeGap > maxBatchSize) {
           await this.getTokenPriceAtTimeStamp(
             coingeckoId,
             lastTimeQuery,
-            lastTimeQuery + batchSize
+            lastTimeQuery + maxBatchSize
           );
-          lastTimeQuery += batchSize;
-          timeGap -= batchSize;
+          lastTimeQuery += maxBatchSize;
+          timeGap -= maxBatchSize;
         }
 
-        await this.getTokenPriceAtTimeStamp(coingeckoId, lastTimeQuery, now);
-
+        if (timeGap > minBatchSize) {
+          await this.getTokenPriceAtTimeStamp(coingeckoId, lastTimeQuery, now);
+        }
         console.log("fetch token", coingeckoId, "done");
       }
     } catch (error) {
