@@ -17,4 +17,6 @@ const tokenPriceSchema = new mongoose.Schema<ITokenPrice>(
   { versionKey: false }
 );
 
+tokenPriceSchema.index({ coingeckoId: 1, timestamp: -1 });
+
 export default mongoose.model("TokenPrice", tokenPriceSchema, "token_price");
