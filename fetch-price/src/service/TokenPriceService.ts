@@ -2,20 +2,20 @@ import axios from "axios";
 
 import { sleep } from "../utils";
 import { MongoService } from "./Mongo";
-import { LastTimeQuery } from "../model/index";
 import { COINGECKO_IDS } from "../common/Config";
+import { LastTimeQuery, TokenPrice } from "../model";
 
-const maxBatchSize = 30 * 24 * 60 * 60;
-const minBatchSize = 3 * 24 * 60 * 60;
+const maxBatchSize = 60 * 24 * 60 * 60;
+const minBatchSize = 5 * 24 * 60 * 60;
 const mongoService = new MongoService();
 
 export class TokenPriceService {
   constructor() {
     this.fetchPrice = this.fetchPrice.bind(this);
-    this.getTokenPriceAtTimeStamp = this.getTokenPriceAtTimeStamp.bind(this);
+    this.fetchPriceAtTimeStamp = this.fetchPriceAtTimeStamp.bind(this);
   }
 
-  async getTokenPriceAtTimeStamp(
+  async fetchPriceAtTimeStamp(
     coingeckoId: string,
     timestampFrom: number,
     timestampTo: number
@@ -46,7 +46,8 @@ export class TokenPriceService {
       const updatePromises: Promise<void>[] = [];
 
       for (let i = 0; i < prices.length; i++) {
-        const timestamp = Math.floor(prices[i][0] / 1000);
+        const timestamp = Math.round(prices[i][0] / 1000);
+        // const timestamp = Math.round(prices[i][0] / 3600000) * 3600;
         const price = prices[i][1];
         const market_cap = market_caps[i][1];
         const total_volume = total_volumes[i][1];
@@ -69,8 +70,8 @@ export class TokenPriceService {
       await mongoService.updateLastTimeQuery(coingeckoId, timestampTo);
       console.log("update last time query", coingeckoId, timestampTo);
       await sleep(25000);
-    } catch (error) {
-      console.error("Error in getTokenPriceAtTimeStamp", error);
+    } catch (error: any) {
+      console.error("Error in fetchPriceAtTimeStamp", error.code);
       process.exit(1);
     }
   }
@@ -93,7 +94,7 @@ export class TokenPriceService {
         let timeGap = now - lastTimeQuery;
 
         while (timeGap > maxBatchSize) {
-          await this.getTokenPriceAtTimeStamp(
+          await this.fetchPriceAtTimeStamp(
             coingeckoId,
             lastTimeQuery,
             lastTimeQuery + maxBatchSize
@@ -103,13 +104,35 @@ export class TokenPriceService {
         }
 
         if (timeGap > minBatchSize) {
-          await this.getTokenPriceAtTimeStamp(coingeckoId, lastTimeQuery, now);
+          await this.fetchPriceAtTimeStamp(coingeckoId, lastTimeQuery, now);
         }
         console.log("fetch token", coingeckoId, "done");
       }
+
+      console.log("fetch all tokens done");
     } catch (error) {
       console.error("Error in fetchPrice", error);
       process.exit(1);
+    }
+  }
+
+  async getTokenPrice(coingeckoId: string, timestamp: number) {
+    try {
+      const closet = await TokenPrice.findOne({
+        coingeckoId: coingeckoId,
+        timestamp: { $lte: timestamp },
+      })
+        .sort({ timestamp: -1 })
+        .exec();
+
+      if (!closet) {
+        throw new Error("No closet price found");
+      }
+
+      return parseFloat(closet.value);
+    } catch (error) {
+      console.error("Error in getTokenPrice", error);
+      return parseFloat("0.0");
     }
   }
 }

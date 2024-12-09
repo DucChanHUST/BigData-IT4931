@@ -2,9 +2,12 @@ import mongoose from "mongoose";
 
 import {
   TokenPrice,
+  Transaction,
   LastTimeQuery,
   TokenMarketCap,
+  LastBlockQuery,
   TokenTotalVolume,
+  ITransaction,
 } from "../model";
 import {
   MONGO_URL,
@@ -12,6 +15,7 @@ import {
   DB_USERNAME,
   DB_PASSWORD,
   COINGECKO_IDS,
+  NETWORKS,
 } from "../common/Config";
 
 export class MongoService {
@@ -79,14 +83,24 @@ export class MongoService {
       //   );
       // });
 
-      COINGECKO_IDS.forEach(async (coingeckoId) => {
+      for (const coingeckoId of COINGECKO_IDS) {
         const _id = coingeckoId;
         await LastTimeQuery.updateOne(
           { _id },
-          { _id, timestamp: 1717200000 }, // Date and time (GMT): Saturday, June 1, 2024 12:00:00 AM
+          { $setOnInsert: { _id, timestamp: 1717200000 } }, // Date and time (GMT): Saturday, June 1, 2024 12:00:00 AM
           { upsert: true }
         );
-      });
+      }
+
+      for (const network of Object.values(NETWORKS)) {
+        const _id = network.chainId;
+        const initBlock = network.initBlock;
+        await LastBlockQuery.updateOne(
+          { _id },
+          { $setOnInsert: { _id, blockNumber: initBlock } },
+          { upsert: true }
+        );
+      }
     } catch (error) {
       console.error("Error in initDb", error);
     }
@@ -152,6 +166,26 @@ export class MongoService {
       });
     } catch (error) {
       console.error("Error in updateTokenTotalVolumes", error);
+    }
+  }
+
+  async updateLastBlockQuery(chainId: number, blockNumber: number) {
+    try {
+      await LastBlockQuery.findOneAndUpdate(
+        { _id: chainId },
+        { blockNumber },
+        { upsert: true }
+      );
+    } catch (error) {
+      console.error("Error in updateLastBlockQuery", error);
+    }
+  }
+
+  async saveTransaction(transaction: ITransaction) {
+    try {
+      await Transaction.create(transaction);
+    } catch (error) {
+      console.error("Error in saveTransaction", error);
     }
   }
 }
