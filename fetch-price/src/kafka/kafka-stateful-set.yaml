@@ -56,4 +56,3 @@ spec:
         resources:
           requests:
             storage: 1Gi
-kafka-topics --bootstrap-server kafka:29092 --topic token-price --create --partitions 3 --replication-factor 3
