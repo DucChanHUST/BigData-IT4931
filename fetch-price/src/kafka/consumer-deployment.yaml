@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  namespace: ducchan-kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      containers:
+        - name: consumer
+          image: ducchankawaii/consumer:latest
+          env:
+            - name: KAFKA_BROKER
+              value: kafka-cluster-kafka-bootstrap.ducchan-kafka:9092
+            - name: TOPIC
+              value: my-topic
