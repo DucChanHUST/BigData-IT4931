@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-worker
+  labels:
+    app: spark
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: spark
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: spark
+        component: worker
+    spec:
+      containers:
+        - name: spark-worker
+          image: bitnami/spark:3.5.3-debian-12-r1
+          ports:
+            - containerPort: 7078
+          env:
+            - name: SPARK_MODE
+              value: "worker"
+            - name: SPARK_MASTER
+              value: "spark://spark-master:7077"

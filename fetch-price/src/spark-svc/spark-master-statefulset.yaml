@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spark-master
+  namespace: spark
+spec:
+  serviceName: "spark-master"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark
+      component: master
+  template:
+    metadata:
+      labels:
+        app: spark
+        component: master
+    spec:
+      containers:
+        - name: spark-master
+          image: bitnami/spark:3.5.3-debian-12-r1
+          ports:
+            - containerPort: 7077
+            - containerPort: 8080
+          env:
+            - name: SPARK_MODE
+              value: "master"
+            - name: SPARK_MASTER_HOST
+              value: "spark-master"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  namespace: spark
+spec:
+  ports:
+    - port: 7077
+      targetPort: 7077
+    - port: 8080
+      targetPort: 8080
+  clusterIP: None
+  selector:
+    app: spark
+    component: master

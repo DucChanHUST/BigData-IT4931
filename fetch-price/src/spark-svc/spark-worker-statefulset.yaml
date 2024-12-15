@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spark-worker
+  namespace: spark
+spec:
+  serviceName: "spark-worker"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: spark
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: spark
+        component: worker
+    spec:
+      containers:
+        - name: spark-worker
+          image: bitnami/spark:3.5.3-debian-12-r1
+          ports:
+            - containerPort: 7078
+          env:
+            - name: SPARK_MODE
+              value: "worker"
+            - name: SPARK_MASTER
+              value: "spark://spark-master.spark:7077"
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "2"
+            requests:
+              memory: "1Gi"
+              cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-worker
+  namespace: spark
+spec:
+  ports:
+    - port: 7078
+      targetPort: 7078
+  clusterIP: None
+  selector:
+    app: spark
+    component: worker
