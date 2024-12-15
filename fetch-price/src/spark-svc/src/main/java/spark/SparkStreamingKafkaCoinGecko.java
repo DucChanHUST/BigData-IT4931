@@ -1,15 +1,15 @@
 package spark;
 
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.functions;
 import org.apache.spark.streaming.*;
+import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.kafka010.*;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.spark.streaming.dstream.InputDStream;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.spark.streaming.dstream.DStream;
-import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.*;
 
 import java.util.*;
@@ -62,6 +62,15 @@ public class SparkStreamingKafkaCoinGecko {
             functions.col("timestamp").startsWith(today)
         );
 
+        // Lưu tổng volume vào file CSV
+        Dataset<Row> totalVolume = todaysData.groupBy().sum("total_volumes");
+        totalVolume.write()
+            .format("csv")
+            .option("header", "true")
+            .mode("append")
+            .save("/tmp/total_volume.csv");
+
+        /*
         // Lưu vào Elastic Search
         Dataset<Row> totalVolume = todaysData.groupBy().sum("total_volumes");
         totalVolume.write()
@@ -71,20 +80,31 @@ public class SparkStreamingKafkaCoinGecko {
             .option("es.port", "9200")
             .mode("append")
             .save();
+         */
 
         double whaleVolumeThreshold = 1000000.0; // $1000000
         Dataset<Row> whaleTransactions = todaysData.filter(
             functions.col("total_volumes").gt(whaleVolumeThreshold)
         );
 
+        // Lưu tổng giá trị whale
         Dataset<Row> whaleVolume = whaleTransactions.groupBy("symbol").sum("total_volumes");
         whaleVolume.write()
-            .format("org.elasticsearch.spark.sql")
+            .format("csv")
+            .option("header", "true")
+            .mode("append")
+            .save("/tmp/whale_volume.csv");
+
+        /*
+        Dataset<Row> whaleVolume = whaleTransactions.groupBy("symbol").sum("total_volumes");
+        whaleVolume.write()
+            .format("org.elasticsearch.sp   ark.sql")
             .option("es.resource", "whale-volume/_doc")
             .option("es.nodes", "elasticsearch-service")
             .option("es.port", "9200")
             .mode("append")
             .save();
+         */
 
         ssc.start();
         ssc.awaitTermination();
