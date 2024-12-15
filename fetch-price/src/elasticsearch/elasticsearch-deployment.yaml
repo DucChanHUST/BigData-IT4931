@@ -1,0 +1,38 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch
+  namespace: elasticsearch
+spec:
+  version: 8.5.0
+  nodeSets:
+    - name: elasticsearch
+      count: 3
+      config:
+        elasticsearch.yml:
+          xpack.ml.enabled: false
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            storageClassName: standard
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-service
+  namespace: elasticsearch
+spec:
+  ports:
+    - port: 9200
+      targetPort: 9200
+      nodePort: 30002
+  selector:
+    app: elasticsearch
+  type: NodePort

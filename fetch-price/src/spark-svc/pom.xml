@@ -58,6 +58,12 @@
     </dependency>
 
     <dependency>
+        <groupId>org.elasticsearch</groupId>
+        <artifactId>elasticsearch-spark-30_2.12</artifactId>
+        <version>8.5.0</version>
+    </dependency>
+
+    <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>1.7.36</version>

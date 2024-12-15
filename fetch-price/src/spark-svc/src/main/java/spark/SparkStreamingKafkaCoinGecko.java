@@ -76,7 +76,7 @@ public class SparkStreamingKafkaCoinGecko {
         totalVolume.write()
             .format("org.elasticsearch.spark.sql")
             .option("es.resource", "total-volume/_doc")
-            .option("es.nodes", "elasticsearch-service")
+            .option("es.nodes", "elasticsearch-service.elasticsearch.svc.cluster.local")
             .option("es.port", "9200")
             .mode("append")
             .save();
@@ -100,7 +100,7 @@ public class SparkStreamingKafkaCoinGecko {
         whaleVolume.write()
             .format("org.elasticsearch.sp   ark.sql")
             .option("es.resource", "whale-volume/_doc")
-            .option("es.nodes", "elasticsearch-service")
+            .option("es.nodes", "elasticsearch-service.elasticsearch.svc.cluster.local")
             .option("es.port", "9200")
             .mode("append")
             .save();

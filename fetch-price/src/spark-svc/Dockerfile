@@ -16,5 +16,3 @@ COPY . /app
 
 # Run maven
 RUN mvn clean install
-
-ENTRYPOINT ["spark-submit", "--master", "spark://spark-master:7077", "--deploy-mode", "client", "target/spark-svc-1.0-SNAPSHOT.jar"]
