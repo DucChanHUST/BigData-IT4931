@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: init-db
+  namespace: ducchan-kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: init-db
+  template:
+    metadata:
+      labels:
+        app: init-db
+    spec:
+      containers:
+        - name: init-db
+          image: ducchankawaii/init-db:latest
+          ports:
+            - containerPort: 3000

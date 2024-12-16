@@ -1,9 +1,9 @@
 {
-  "name": "kafka-producer",
+  "name": "kafka-consumer",
   "version": "1.0.0",
-  "main": "src/producer.ts",
+  "main": "src/Consumer.ts",
   "scripts": {
-    "start": "ts-node src/producer.ts"
+    "start": "ts-node src/Consumer.ts"
   },
   "dependencies": {
     "kafkajs": "^2.2.4"
