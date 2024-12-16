@@ -1,7 +1,7 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: token-price
+  name: token
   namespace: ducchan-kafka
   labels:
     strimzi.io/cluster: kafka-cluster

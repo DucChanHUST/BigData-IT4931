@@ -16,8 +16,3 @@ spec:
       containers:
         - name: consumer
           image: ducchankawaii/consumer:latest
-          env:
-            - name: KAFKA_BROKER
-              value: kafka-cluster-kafka-bootstrap.ducchan-kafka:9092
-            - name: TOPIC
-              value: my-topic
