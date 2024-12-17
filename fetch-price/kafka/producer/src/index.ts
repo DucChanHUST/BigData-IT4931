@@ -20,7 +20,9 @@ const start = async () => {
 
   await producerToken.connect();
 
-  await tokenPriceService.fetchPrice();
+  // await tokenPriceService.fetchPrice();
+  // await crawlService.crawlTx();
+
   await crawlService.crawlTx();
 };
 
