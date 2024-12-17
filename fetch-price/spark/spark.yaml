@@ -1,3 +1,4 @@
+# Spark Master Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,40 +18,56 @@ spec:
     spec:
       containers:
         - name: spark-master
-          image: bitnami/spark:3.5.1
-          imagePullPolicy: IfNotPresent
+          image: apache/spark:3.5.1
+          command:
+            - /opt/spark/bin/spark-class
+          args:
+            - org.apache.spark.deploy.master.Master
           env:
             - name: SPARK_MODE
               value: master
-            - name: SPARK_MASTER_HOST
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
             - name: SPARK_MASTER_PORT
               value: "7077"
             - name: SPARK_MASTER_WEBUI_PORT
               value: "8080"
-            - name: SPARK_NO_DAEMONIZE
-              value: "true"
           ports:
-            - name: master-rpc
-              containerPort: 7077
-            - name: master-web
-              containerPort: 8080
+            - containerPort: 7077
+            - containerPort: 8080
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
+              memory: "1Gi"
+              cpu: "500m"
             limits:
-              cpu: 1
-              memory: 2Gi
+              memory: "2Gi"
+              cpu: "1"
 ---
+# Spark Master Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  namespace: spark
+spec:
+  selector:
+    app: spark
+    role: master
+  ports:
+    - name: master-rpc
+      port: 7077
+      targetPort: 7077
+    - name: master-web
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+# Spark Worker StatefulSet
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: spark-worker
   namespace: spark
 spec:
+  serviceName: spark-worker-headless
   replicas: 2
   selector:
     matchLabels:
@@ -64,49 +81,39 @@ spec:
     spec:
       containers:
         - name: spark-worker
-          image: bitnami/spark:3.5.1
-          imagePullPolicy: IfNotPresent
-          command: ["/bin/bash", "-c"]
+          image: apache/spark:3.5.1
+          command:
+            - /opt/spark/bin/spark-class
           args:
-            - |
-              sed -i 's|tcp://.*:.* + 1 - 1|8081|' /opt/bitnami/spark/sbin/start-worker.sh
-              /opt/bitnami/scripts/spark/entrypoint.sh
+            - org.apache.spark.deploy.worker.Worker
+            - spark://spark-master.spark.svc.cluster.local:7077
           env:
             - name: SPARK_MODE
               value: worker
-            # - name: SPARK_MASTER_HOST
-            #   value: spark-master
-            - name: SPARK_MASTER
-              value: spark://spark-master.spark.svc.cluster.local:7077
-            # - name: SPARK_WORKER_WEBUI_PORT
-            #   value: "8081"
-            - name: SPARK_NO_DAEMONIZE
-              value: "true"
+            - name: SPARK_WORKER_WEBUI_PORT
+              value: "8081"
           ports:
-            - name: worker-web
-              containerPort: 8081
+            - containerPort: 8081
           resources:
             requests:
-              cpu: 500m
-              memory: 1Gi
+              memory: "1Gi"
+              cpu: "500m"
             limits:
-              cpu: 1
-              memory: 2Gi
+              memory: "2Gi"
+              cpu: "1"
 ---
+# Spark Worker Headless Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: spark-master
+  name: spark-worker-headless
   namespace: spark
 spec:
+  ports:
+    - name: worker-web
+      port: 8081
+      targetPort: 8081
+  clusterIP: None
   selector:
     app: spark
-    role: master
-  ports:
-    - name: spark-rpc
-      port: 7077
-      targetPort: 7077
-    - name: webui
-      port: 8080
-      targetPort: 8080
-  type: ClusterIP
+    role: worker
