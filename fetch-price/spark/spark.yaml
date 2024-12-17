@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-master
+  namespace: spark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark
+      role: master
+  template:
+    metadata:
+      labels:
+        app: spark
+        role: master
+    spec:
+      containers:
+        - name: spark-master
+          image: bitnami/spark:3.5.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: SPARK_MODE
+              value: master
+            - name: SPARK_MASTER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SPARK_MASTER_PORT
+              value: "7077"
+            - name: SPARK_MASTER_WEBUI_PORT
+              value: "8080"
+            - name: SPARK_NO_DAEMONIZE
+              value: "true"
+          ports:
+            - name: master-rpc
+              containerPort: 7077
+            - name: master-web
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-worker
+  namespace: spark
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spark
+      role: worker
+  template:
+    metadata:
+      labels:
+        app: spark
+        role: worker
+    spec:
+      containers:
+        - name: spark-worker
+          image: bitnami/spark:3.5.1
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              sed -i 's|tcp://.*:.* + 1 - 1|8081|' /opt/bitnami/spark/sbin/start-worker.sh
+              /opt/bitnami/scripts/spark/entrypoint.sh
+          env:
+            - name: SPARK_MODE
+              value: worker
+            # - name: SPARK_MASTER_HOST
+            #   value: spark-master
+            - name: SPARK_MASTER
+              value: spark://spark-master.spark.svc.cluster.local:7077
+            # - name: SPARK_WORKER_WEBUI_PORT
+            #   value: "8081"
+            - name: SPARK_NO_DAEMONIZE
+              value: "true"
+          ports:
+            - name: worker-web
+              containerPort: 8081
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 1
+              memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  namespace: spark
+spec:
+  selector:
+    app: spark
+    role: master
+  ports:
+    - name: spark-rpc
+      port: 7077
+      targetPort: 7077
+    - name: webui
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
