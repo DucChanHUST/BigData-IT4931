@@ -1,38 +1,57 @@
-apiVersion: elasticsearch.k8s.elastic.co/v1
-kind: Elasticsearch
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
   name: elasticsearch
   namespace: elasticsearch
 spec:
-  version: 8.5.0
-  nodeSets:
-    - name: elasticsearch
-      count: 3
-      config:
-        elasticsearch.yml:
-          xpack.ml.enabled: false
-      podTemplate:
-        spec:
-          containers:
-            - name: elasticsearch
-      volumeClaimTemplates:
-        - metadata:
-            name: elasticsearch-data
-          spec:
-            accessModes: ["ReadWriteOnce"]
-            storageClassName: standard
-
+  serviceName: elasticsearch
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        env:
+        - name: discovery.type
+          value: single-node
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+      volumes:
+      - name: elasticsearch-data
+        persistentVolumeClaim:
+          claimName: elasticsearch-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: elasticsearch-service
+  name: elasticsearch
   namespace: elasticsearch
 spec:
-  ports:
-    - port: 9200
-      targetPort: 9200
-      nodePort: 30002
   selector:
     app: elasticsearch
-  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 9200
+    targetPort: 9200
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elasticsearch-pvc
+  namespace: elasticsearch
+spec:
+  accessModes:
+    - ReadWriteOnce
