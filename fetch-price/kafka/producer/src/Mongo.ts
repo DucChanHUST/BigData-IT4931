@@ -188,4 +188,20 @@ export class MongoService {
       console.error("Error in saveTransaction", error);
     }
   }
+
+  async getLastBlockQuery(chainId: number) {
+    try {
+      const lastBlockQuery = await LastBlockQuery.find({
+        _id: chainId,
+      });
+
+      if (!lastBlockQuery || !lastBlockQuery.length) {
+        throw new Error("LastBlockQuery not found");
+      }
+
+      return lastBlockQuery[0].blockNumber;
+    } catch (error) {
+      console.error("Error in getLastBlockQuery", error);
+    }
+  }
 }

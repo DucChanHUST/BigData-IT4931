@@ -8,7 +8,6 @@ import { KafkaProducerService } from "./Producer";
 
 const maxBatchSize = 60 * 24 * 60 * 60;
 const minBatchSize = 3 * 24 * 60 * 60;
-const mongoService = new MongoService();
 
 export class TokenPriceService {
   private producer: KafkaProducerService;
@@ -62,7 +61,7 @@ export class TokenPriceService {
           price,
           market_cap,
           total_volume,
-        }
+        };
 
         messages.push(message);
       }
