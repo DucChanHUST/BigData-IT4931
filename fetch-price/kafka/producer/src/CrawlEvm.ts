@@ -21,6 +21,7 @@ export class CrawlEvm {
     const providerLength = providers.length;
 
     let attempt = 0;
+    // while (true) {
     const provider = providers[attempt % providerLength];
     try {
       sleep(5000);
@@ -67,13 +68,11 @@ export class CrawlEvm {
         if (!logs.length) {
           continue;
         }
-
         for (const log of logs) {
           // check if the log is a token transfer
           if (log.topics.length !== 3) {
             continue;
           }
-
           const topicEvent = log.topics[0];
           if (
             topicEvent !==
@@ -81,9 +80,7 @@ export class CrawlEvm {
           ) {
             continue;
           }
-
           const tokenAddress = log.address;
-
           const tokenInfo = TOKEN_INFO.find(
             (token) => token.address === tokenAddress
           );
@@ -130,30 +127,33 @@ export class CrawlEvm {
         await sleep(10000);
       }
     }
+    // }
   }
 
-  // async crawlTx() {
-  //   const networks = Object.values(NETWORKS);
-  //   while (true) {
-  //     for (const network of networks) {
-  //       const lastBlockQuery = await mongoService.getLastBlockQuery(
-  //         network.chainId
-  //       );
-  //       this.decodeBlock(network.chainId, lastBlockQuery);
-  //       mongoService.updateLastBlockQuery(
-  //         network.chainId,
-  //         Number(lastBlockQuery) + 1
-  //       );
-  //     }
-  //   }
-  // }
-
-  async test() {
+  async crawlTx() {
+    const networks = Object.values(NETWORKS);
     while (true) {
+      for (const network of networks) {
+        const lastBlockQuery = await mongoService.getLastBlockQuery(
+          network.chainId
+        );
+        this.decodeBlock(network.chainId, lastBlockQuery);
+        mongoService.updateLastBlockQuery(
+          network.chainId,
+          Number(lastBlockQuery) + 1
+        );
+      }
+    }
+  }
+
+  async simpleLog() {
+    while (true) {
+      console.log("send message");
+
       await this.producer.sendMessage({
-        message: Date.now(),
+        message: "Hello",
       });
-      await sleep(1 * 1000);
+      await sleep(10000);
     }
   }
 }

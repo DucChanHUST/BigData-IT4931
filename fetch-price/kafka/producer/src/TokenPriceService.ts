@@ -2,7 +2,12 @@ import axios from "axios";
 
 import { sleep } from "./utils";
 import { MongoService } from "./Mongo";
-import { LastTimeQuery } from "./model";
+import {
+  LastTimeQuery,
+  TokenMarketCap,
+  TokenPrice,
+  TokenTotalVolume,
+} from "./model";
 import { COINGECKO_IDS } from "./Config";
 import { KafkaProducerService } from "./Producer";
 
@@ -25,8 +30,6 @@ export class TokenPriceService {
   ) {
     try {
       const url = `https://api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart/range?vs_currency=usd&from=${timestampFrom}&to=${timestampTo}`;
-      console.log("url", url);
-
       const response = await axios.get(url);
       if (
         !response.data ||
@@ -46,32 +49,61 @@ export class TokenPriceService {
       }
       console.log("length", prices.length);
 
-      const messages: any[] = [];
+      const updatePromises: Promise<any>[] = [];
 
       for (let i = 0; i < prices.length; i++) {
         const timestamp = Math.round(prices[i][0] / 1000);
-
+        // const timestamp = Math.round(prices[i][0] / 3600000) * 3600;
         const price = prices[i][1];
         const market_cap = market_caps[i][1];
         const total_volume = total_volumes[i][1];
 
-        const message = {
-          coingeckoId,
-          timestamp,
-          price,
-          market_cap,
-          total_volume,
-        };
+        updatePromises.push(
+          // TokenPrice.updateTokenPrice(price, coingeckoId, timestamp)
+          TokenPrice.create({
+            _id: `${coingeckoId}_${timestamp}`.toString(),
+            value: price.toString(),
+            coingeckoId: coingeckoId,
+            timestamp: timestamp,
+          })
+        );
 
-        messages.push(message);
+        await TokenPrice.create();
+        updatePromises.push(
+          TokenMarketCap.create({
+            _id: `${coingeckoId}_${timestamp}`,
+            value: market_cap,
+            coingeckoId,
+            timestamp,
+          })
+          // mongoService.updateTokenMarketCap(market_cap, coingeckoId, timestamp)
+        );
+        updatePromises.push(
+          TokenTotalVolume.create({
+            _id: `${coingeckoId}_${timestamp}`,
+            value: total_volume,
+            coingeckoId,
+            timestamp,
+          })
+        );
+        // mongoService.updateTokenTotalVolume(
+        //   total_volume,
+        //   coingeckoId,
+        //   timestamp
+        // )
       }
-      await this.producer.sendMessage({
-        topic: this.producer.topic,
-        messages,
-      });
+      await Promise.all(updatePromises);
       // await mongoService.updateLastTimeQuery(coingeckoId, timestampTo);
+      const updatedRecord = await LastTimeQuery.findOneAndUpdate(
+        { _id: coingeckoId },
+        {
+          _id: coingeckoId,
+          timestamp: timestampTo,
+        },
+        { upsert: true, new: true }
+      );
       console.log("update last time query", coingeckoId, timestampTo);
-      await sleep(90000);
+      await sleep(25000);
     } catch (error: any) {
       console.error("Error in fetchPriceAtTimeStamp", error.code);
       process.exit(1);
@@ -103,12 +135,42 @@ export class TokenPriceService {
           );
           lastTimeQuery += maxBatchSize;
           timeGap -= maxBatchSize;
+          sleep(10000);
+          console.log("sleep");
         }
 
         if (timeGap > minBatchSize) {
           await this.fetchPriceAtTimeStamp(coingeckoId, lastTimeQuery, now);
         }
         console.log("fetch token", coingeckoId, "done");
+      }
+
+      console.log("fetch all tokens done");
+    } catch (error) {
+      console.error("Error in fetchPrice", error);
+      process.exit(1);
+    }
+  }
+
+  async simpleLog() {
+    try {
+      for (const coingeckoId of COINGECKO_IDS) {
+        const lastTimeQueryRecord = await LastTimeQuery.findOne({
+          _id: coingeckoId,
+        });
+
+        console.log("fetch token", coingeckoId);
+        console.log("Last time query", lastTimeQueryRecord);
+        const updatedRecord = await LastTimeQuery.findOneAndUpdate(
+          { _id: coingeckoId },
+          {
+            _id: coingeckoId,
+            timestamp: "1717200100",
+          },
+          { upsert: true, new: true } // upsert: true để tạo mới nếu không tồn tại
+        );
+
+        console.log(updatedRecord);
       }
 
       console.log("fetch all tokens done");
