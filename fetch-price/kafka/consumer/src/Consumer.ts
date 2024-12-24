@@ -57,9 +57,11 @@ class KafkaConsumerService {
   }
 }
 
-const KAFKA_BROKERS = ["localhost:29092"]; //
-const GROUP_ID = "codespotify-topic";
-
+const brokers: string[] = ["kafka-broker1:9092", "kafka-broker2:9092"];
+const KAFKA_BROKERS = process.env.KAFKA_BOOTSTRAP_SERVERS
+  ? process.env.KAFKA_BOOTSTRAP_SERVERS.split(",")
+  : brokers;
+const GROUP_ID = "yuku-consumer-group";
 const consumer = new KafkaConsumerService(KAFKA_BROKERS, GROUP_ID);
 consumer.start().catch(console.error);
 
