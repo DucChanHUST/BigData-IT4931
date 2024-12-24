@@ -1,37 +1,89 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+import time
 
-print(0)
-# Cấu hình Spark
-spark = (
-    SparkSession.builder.appName("Kafka to HDFS")
-    .config("spark.sql.warehouse.dir", "/user/spark/warehouse")
-    .config("spark.hadoop.fs.defaultFS", "hdfs://hdfs-namenode:8020")
+# Kafka configuration
+kafka_topic = "token"
+kafka_broker = "kafka-broker1:9092,kafka-broker2:9092"
+
+# Initialize Spark with detailed logging
+spark = SparkSession.builder \
+    .appName("KafkaToHDFS") \
+    .config("spark.sql.streaming.checkpointLocation", "/app/checkpoint") \
+    .config("spark.streaming.backpressure.enabled", "true") \
+    .config("spark.executor.extraJavaOptions", "-Dlog4j.logger.org.apache.spark.sql.kafka=DEBUG") \
     .getOrCreate()
-)
 
-print(1)
-# Đọc dữ liệu từ Kafka
-kafka_df = (
-    spark.readStream.format("kafka")
-    .option("kafka.bootstrap.servers", "my-cluster-kafka-bootstrap.ducchan-kafka:9092")
-    .option("subscribe", "token")
-    .load()
-)
+# Set log level
+spark.sparkContext.setLogLevel("DEBUG")
 
-print(2)
-# Chuyển đổi dữ liệu Kafka (chuyển từ dạng byte sang string)
-message_df = kafka_df.selectExpr("CAST(value AS STRING)")
+print("Starting Kafka stream reading...")
 
-print(3)
-# Ghi vào HDFS
-query = (
-    message_df.writeStream.outputMode("append")
-    .format("text")
-    .option("checkpointLocation", "/user/spark/checkpoints/kafka-to-hdfs")
-    .option("path", "/user/spark/kafka_data")
-    .start()
-)
+def test_kafka_connection():
+    try:
+        # Test connection using a non-streaming read
+        df_test = spark.read \
+            .format("kafka") \
+            .option("kafka.bootstrap.servers", kafka_broker) \
+            .option("subscribe", kafka_topic) \
+            .option("startingOffsets", "earliest") \
+            .option("endingOffsets", "latest") \
+            .load()
+        
+        count = df_test.count()
+        print(f"Successfully connected to Kafka. Found {count} messages in topic.")
+        return True
+    except Exception as e:
+        print(f"Failed to connect to Kafka: {str(e)}")
+        return False
 
-print(4)
-query.awaitTermination()
+# Test connection first
+print("Testing Kafka connection...")
+if not test_kafka_connection():
+    print("Failed to connect to Kafka. Exiting...")
+    spark.stop()
+    exit(1)
+
+try:
+    # Read from Kafka with debug options
+    df = spark.readStream \
+        .format("kafka") \
+        .option("kafka.bootstrap.servers", kafka_broker) \
+        .option("subscribe", kafka_topic) \
+        .option("startingOffsets", "latest") \
+        .option("failOnDataLoss", "false") \
+        .load()
+    
+    print("Successfully created Kafka stream DataFrame")
+    print("DataFrame schema:")
+    df.printSchema()
+    
+    json_schema = StructType([
+        StructField("time", StringType(), True)
+    ])
+    
+    # Parse and process messages
+    parsed = df \
+        .selectExpr("CAST(value AS STRING) as message") \
+        .select(from_json(col("message"), json_schema).alias("parsed_message")) \
+        .select("parsed_message.*")
+    
+    # Write to console
+    print("Starting stream query...")
+    query = parsed \
+        .writeStream \
+        .outputMode("append") \
+        .format("console") \
+        .option("truncate", "false") \
+        .trigger(processingTime="5 seconds") \
+        .start()
+    
+    print("Stream started successfully, waiting for data...")
+    query.awaitTermination()
+
+except Exception as e:
+    print(f"Error in streaming: {str(e)}")
+    import traceback
+    traceback.print_exc()
+    spark.stop()
