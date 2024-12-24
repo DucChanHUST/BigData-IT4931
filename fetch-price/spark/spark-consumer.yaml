@@ -28,8 +28,20 @@ spec:
               value: "2g"
             - name: SPARK_EXECUTOR_MEMORY_OVERHEAD
               value: "512m"
-            - name: SPARK_EXECUTOR_CORES 
+            - name: SPARK_EXECUTOR_CORES
               value: "1"
+            - name: SPARK_DRIVER_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SPARK_PUBLIC_DNS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SPARK_DRIVER_BIND_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           resources:
             requests:
               memory: "2.5Gi"

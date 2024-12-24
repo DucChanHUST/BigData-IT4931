@@ -1,9 +1,12 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
+import os
 
 spark = SparkSession.builder \
     .appName("KafkaToHDFS") \
+    .config("spark.driver.host", os.getenv("SPARK_DRIVER_HOST")) \
+    .config("spark.driver.bindAddress", "0.0.0.0") \
     .config("spark.sql.streaming.checkpointLocation", "/app/checkpoint") \
     .config("spark.streaming.backpressure.enabled", "true") \
     .config("spark.streaming.kafka.consumer.poll.ms", "512") \
