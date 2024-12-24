@@ -37,7 +37,7 @@ df = spark.readStream \
 
 
 json_schema = StructType([
-    StructField("time", StringType(), True)
+    StructField("message", StringType(), True)
 ])
 
 messages = df.selectExpr("CAST(value AS STRING) as message")
