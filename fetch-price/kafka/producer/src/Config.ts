@@ -1,7 +1,6 @@
 import { ethers } from "ethers";
 
-export const MONGO_URL =
-  "mongodb://mongodb.ducchan-kafka.svc.cluster.local:27017/bigdata-db";
+export const MONGO_URL = "mongodb://localhost:27017";
 export const DB_NAME = "bigdata-db";
 export const DB_USERNAME = "";
 export const DB_PASSWORD = "";

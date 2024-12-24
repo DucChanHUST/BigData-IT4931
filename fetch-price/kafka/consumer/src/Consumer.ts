@@ -57,8 +57,8 @@ class KafkaConsumerService {
   }
 }
 
-const KAFKA_BROKERS = ["my-cluster-kafka-bootstrap.ducchan-kafka:9092"];
-const GROUP_ID = "yuku-consumer-group";
+const KAFKA_BROKERS = ["localhost:29092"]; //
+const GROUP_ID = "codespotify-topic";
 
 const consumer = new KafkaConsumerService(KAFKA_BROKERS, GROUP_ID);
 consumer.start().catch(console.error);

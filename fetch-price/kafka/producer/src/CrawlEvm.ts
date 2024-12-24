@@ -68,13 +68,11 @@ export class CrawlEvm {
         if (!logs.length) {
           continue;
         }
-
         for (const log of logs) {
           // check if the log is a token transfer
           if (log.topics.length !== 3) {
             continue;
           }
-
           const topicEvent = log.topics[0];
           if (
             topicEvent !==
@@ -82,9 +80,7 @@ export class CrawlEvm {
           ) {
             continue;
           }
-
           const tokenAddress = log.address;
-
           const tokenInfo = TOKEN_INFO.find(
             (token) => token.address === tokenAddress
           );
@@ -147,6 +143,17 @@ export class CrawlEvm {
           Number(lastBlockQuery) + 1
         );
       }
+    }
+  }
+
+  async simpleLog() {
+    while (true) {
+      console.log("send message");
+
+      await this.producer.sendMessage({
+        message: "Hello",
+      });
+      await sleep(10000);
     }
   }
 }

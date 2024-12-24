@@ -20,3 +20,4 @@
 .venv
 
 *test.*
+/fetch-price/kafka/producer/node_modules
