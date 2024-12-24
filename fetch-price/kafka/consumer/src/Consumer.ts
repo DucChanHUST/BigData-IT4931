@@ -1,4 +1,7 @@
+import dotenv from "dotenv";
 import { Kafka, Consumer } from "kafkajs";
+
+dotenv.config()
 
 class KafkaConsumerService {
   private kafka: Kafka;
@@ -35,12 +38,6 @@ class KafkaConsumerService {
         } else {
           console.warn(`Unknown topic "${topic}" with data:`, data);
         }
-        // console.log({
-        //   topic,
-        //   partition,
-        //   offset: message.offset,
-        //   value: message.value?.toString(),
-        // });
       },
     });
   }
@@ -57,7 +54,13 @@ class KafkaConsumerService {
   }
 }
 
-const KAFKA_BROKERS = ["my-cluster-kafka-bootstrap.ducchan-kafka:9092"];
+const brokers: string[] = [
+  'kafka-broker1:9092', 
+  'kafka-broker2:9092'
+]
+const KAFKA_BROKERS = process.env.KAFKA_BOOTSTRAP_SERVERS 
+? process.env.KAFKA_BOOTSTRAP_SERVERS.split(',') 
+: brokers;
 const GROUP_ID = "yuku-consumer-group";
 
 const consumer = new KafkaConsumerService(KAFKA_BROKERS, GROUP_ID);

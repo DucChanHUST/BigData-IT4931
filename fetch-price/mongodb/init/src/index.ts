@@ -1,7 +1,7 @@
 import { MongoClient } from "mongodb";
 import { COINGECKO_IDS, NETWORKS } from "./Config";
 
-const mongoUri = "mongodb://mongodb.ducchan-kafka.svc.cluster.local:27017";
+const mongoUri = "mongodb://mongodb.default.svc.cluster.local:27017";
 const client = new MongoClient(mongoUri, {
   connectTimeoutMS: 10000,
   socketTimeoutMS: 45000,

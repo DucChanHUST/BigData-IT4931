@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mongodb
-  namespace: ducchan-kafka
 spec:
   replicas: 1
   selector:
@@ -28,39 +27,35 @@ spec:
           command: ["mongod", "--config", "/etc/mongod.conf"]
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 200m
+              memory: 256Mi
             limits:
-              cpu: 500m
-              memory: 1Gi
+              cpu: 300m
+              memory: 256Mi
       volumes:
         - name: mongodb-config
           configMap:
             name: mongodb-config
         - name: mongodb-data
           emptyDir: {}
-
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: mongodb
-  namespace: ducchan-kafka
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: mongodb
   ports:
     - protocol: TCP
       port: 27017
       targetPort: 27017
-      nodePort: 30017
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mongodb-config
-  namespace: ducchan-kafka
 data:
   mongod.conf: |
     storage:

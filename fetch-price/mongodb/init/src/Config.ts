@@ -1,12 +1,10 @@
-import dotenv from "dotenv";
 import { ethers } from "ethers";
 
 dotenv.config;
 
-export const MONGO_URL = process.env.MONGO_URL ?? "mongodb://localhost:27017/bigdata_db";
-export const DB_NAME = process.env.DB_NAME ?? "bigdata-db";
-export const DB_USERNAME = process.env.DB_USERNAME ?? "";
-export const DB_PASSWORD = process.env.DB_PASSWORD ?? "";
+export const MONGO_URL =
+  "mongodb://mongodb.default.svc.cluster.local:27017/bigdata-db";
+export const DB_NAME = "bigdata-db";
 
 export const COINGECKO_IDS = [
   "bitcoin",

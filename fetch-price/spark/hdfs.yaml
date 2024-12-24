@@ -2,7 +2,6 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: hdfs-namenode-pvc
-  namespace: hdfs
 spec:
   accessModes:
     - ReadWriteOnce
@@ -14,7 +13,6 @@ spec:
 # kind: PersistentVolume
 # metadata:
 #   name: hdfs-datanode-pv-1
-#   namespace: hdfs
 # spec:
 #   capacity:
 #     storage: 10Gi
@@ -27,7 +25,6 @@ spec:
 # kind: PersistentVolumeClaim
 # metadata:
 #   name: hdfs-datanode-pvc-1
-#   namespace: hdfs
 # spec:
 #   accessModes:
 #     - ReadWriteOnce
@@ -39,7 +36,6 @@ spec:
 # kind: PersistentVolume
 # metadata:
 #   name: hdfs-datanode-pv-2
-#   namespace: hdfs
 # spec:
 #   capacity:
 #     storage: 10Gi
@@ -52,7 +48,6 @@ spec:
 # kind: PersistentVolumeClaim
 # metadata:
 #   name: hdfs-datanode-pvc-2
-#   namespace: hdfs
 # spec:
 #   accessModes:
 #     - ReadWriteOnce
@@ -64,7 +59,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hdfs-namenode
-  namespace: hdfs
 spec:
   replicas: 1
   selector:
@@ -103,7 +97,6 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: hdfs-datanode
-  namespace: hdfs
 spec:
   serviceName: hdfs-datanode
   replicas: 2
@@ -141,19 +134,20 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: hdfs-config
-  namespace: hdfs
 data:
   CLUSTER_NAME: "hdfs-cluster"
-  CORE_CONF_fs_defaultFS: "hdfs://hdfs-namenode:8020"
+  CORE_CONF_fs_defaultFS: "hdfs://hdfs-namenode.default.svc.local:8020"
   HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check: "false"
   HDFS_CONF_dfs_permissions_enabled: "false"
   HDFS_CONF_dfs_webhdfs_enabled: "true"
+  SPARK_MASTER_URL: "spark://spark-master.default.svc.cluster.local:7077"
+  HDFS_CONF_dfs_namenode_acls_enabled: "false"
+  HDFS_CONF_dfs_support_append: "true"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: hdfs-namenode
-  namespace: hdfs
 spec:
   selector:
     app: hdfs-namenode
@@ -169,7 +163,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: hdfs-datanode
-  namespace: hdfs
 spec:
   clusterIP: None
   selector:
